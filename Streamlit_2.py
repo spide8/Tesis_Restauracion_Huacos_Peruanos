@@ -273,6 +273,34 @@ if uploaded_file is not None:
 
         st.markdown(
             """
+            <div style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 10px; background-color: #fafafa;">
+                <h4 style="color: #333333;">📝 Interpretación de métricas</h4>
+                <p style="font-size: 16px; color: #555555;">
+                    <b>PSNR (Peak Signal-to-Noise Ratio):</b> mide la relación entre la señal original y el ruido introducido. 
+                    Valores mayores indican mejor calidad. Como referencia:
+                </p>
+                <ul style="color: #555555; font-size: 15px;">
+                    <li>&lt; 20 dB → Calidad baja</li>
+                    <li>20 - 30 dB → Calidad aceptable</li>
+                    <li>&gt; 30 dB → Buena restauración (nivel aprobado)</li>
+                </ul>
+                <p style="font-size: 16px; color: #555555;">
+                    <b>SSIM (Structural Similarity Index):</b> evalúa la similitud estructural entre la imagen original y la restaurada. 
+                    Valores cercanos a <b>1.0</b> indican mayor fidelidad.
+                </p>
+                <ul style="color: #555555; font-size: 15px;">
+                    <li>&lt; 0.5 → Baja similitud</li>
+                    <li>0.5 - 0.7 → Similitud moderada</li>
+                    <li>&gt; 0.7 → Buena similitud</li>
+                </ul>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+        st.markdown(
+            """
             <hr style="margin-top:50px; margin-bottom:10px;">
 
             <div style="text-align: center; color: gray; font-size: 14px;">
