@@ -1,0 +1,37 @@
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# Archivos de Jupyter
+.ipynb_checkpoints
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Modelos pesados
+*.pth
+*.pt
+
+# Archivos de logs
+*.log
+
+# Archivos de VSCode / PyCharm
+.vscode/
+.idea/
+
+# Archivos de Streamlit
+.streamlit/
+
+# Datos temporales
+*.tmp
+*.bak
