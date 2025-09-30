@@ -169,7 +169,7 @@ uploaded_file = st.file_uploader("Sube una imagen", type=["jpg", "jpeg", "png", 
 
 if uploaded_file is not None:
     input_image = Image.open(uploaded_file).convert("RGB")
-    st.image(input_image, caption="Huaco deteriorado", width=400)
+    st.image(input_image, caption="Huaco deteriorado", width="stretch")
 
     st.markdown(
     """
@@ -188,7 +188,6 @@ if uploaded_file is not None:
     unsafe_allow_html=True
     )
 
-
     if st.button("Restaurar Imagen"):
         progress_bar = st.progress(0)
         with st.spinner("Procesando con el modelo GAN..."):
@@ -202,9 +201,8 @@ if uploaded_file is not None:
             restored_image = postprocess_tensor(output_tensor)
             progress_bar.progress(100)
 
-        
         def pad_to_square(img, size=(400, 400), color=(255, 255, 255)):
-            
+
             return ImageOps.pad(img, size, color=color)
 
         target_size = (400, 400) 
@@ -214,9 +212,9 @@ if uploaded_file is not None:
         # Mostrar imágenes lado a lado
         col1, col2 = st.columns(2)
         with col1:
-            st.image(img_original_resized, caption="Original", width=400)
+            st.image(img_original_resized, caption="Original", width="stretch")
         with col2:
-            st.image(img_restored_resized, caption="Restaurado", width=400)
+            st.image(img_restored_resized, caption="Restaurado", width="stretch")
 
         buf = io.BytesIO()
         restored_image.save(buf, format="PNG")
@@ -255,7 +253,6 @@ if uploaded_file is not None:
         img2 = np.array(restored_image.resize((512, 512)))
         psnr = peak_signal_noise_ratio(img1, img2, data_range=255)
         ssim = structural_similarity(img1, img2, channel_axis=2)
-
 
         st.markdown(
             f"""
