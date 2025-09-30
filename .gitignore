@@ -19,7 +19,7 @@ env/
 Thumbs.db
 
 # Modelos pesados
-*.pth
+
 *.pt
 
 # Archivos de logs
