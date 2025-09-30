@@ -172,34 +172,42 @@ if uploaded_file is not None:
     st.image(input_image, caption="Huaco deteriorado", width="stretch")
 
     st.markdown(
-    """
-    <style>
-    div.stButton > button:first-child {
-        background-color: white;
-        color: black;
-        border: 1px solid black;
-    }
-    div.stButton > button:first-child:hover {
-        background-color: #f0f0f0;
-        color: black;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
+        """
+        <style>
+        .centered-button {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .centered-button button {
+            width: 400px;
+            background-color: white !important;
+            color: black !important;
+            border: 1px solid black !important;
+        }
+        .centered-button button:hover {
+            background-color: #f0f0f0 !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
     )
 
-    if st.button("Restaurar Imagen"):
-        progress_bar = st.progress(0)
-        with st.spinner("Procesando con el modelo GAN..."):
-            input_tensor = preprocess_image(input_image)
-            progress_bar.progress(25)
+    restore_btn = st.container()
+    with restore_btn:
+        if st.button("Restaurar Imagen", key="restore_btn"):
+            progress_bar = st.progress(0)
+            with st.spinner("Procesando con el modelo GAN..."):
+                input_tensor = preprocess_image(input_image)
+                progress_bar.progress(25)
 
-            with torch.no_grad():
-                output_tensor = model(input_tensor)
-            progress_bar.progress(75)
+                with torch.no_grad():
+                    output_tensor = model(input_tensor)
+                progress_bar.progress(75)
 
-            restored_image = postprocess_tensor(output_tensor)
-            progress_bar.progress(100)
+                restored_image = postprocess_tensor(output_tensor)
+                progress_bar.progress(100)
+
 
         def pad_to_square(img, size=(400, 400), color=(255, 255, 255)):
 
