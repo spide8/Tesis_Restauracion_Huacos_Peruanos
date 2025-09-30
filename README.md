@@ -20,9 +20,10 @@ De esta manera, se ofrece una herramienta de apoyo a la **preservación digital*
 ## 📂 Estructura del repositorio
 
 
-
-├── Streamlit_2.py # Script principal de la aplicación
-├── generator_checkpoint.pth # Pesos del modelo (no incluido en GitHub por tamaño)
-├── requirements.txt # Dependencias necesarias
-├── README.md # Documentación del proyecto
+```bash
+Tesis_Restauracion_Huacos_Peruanos/
+├── Streamlit_2.py              # Script principal de la aplicación Streamlit
+├── generator_checkpoint.pth    # Pesos entrenados del modelo (no en GitHub por tamaño)
+├── requirements.txt            # Dependencias necesarias
+├── README.md                   # Documentación del proyecto
 
