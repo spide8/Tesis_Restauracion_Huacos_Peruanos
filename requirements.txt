@@ -7,4 +7,3 @@ numpy
 scikit-image
 lpips
 pytorch_fid
-pytorch-fid
