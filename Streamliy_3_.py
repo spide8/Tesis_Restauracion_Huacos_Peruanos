@@ -165,7 +165,7 @@ st.markdown(
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 try:
     with st.spinner("Cargando modelos de IA, por favor espere..."):
-        model = load_model("generator_checkpoint.pth")
+        model = load_model("checkpoint.pth")
         lpips_model = load_metric_models()
         model.to(device)
         lpips_model.to(device)
@@ -261,7 +261,7 @@ if uploaded_file is not None:
 # --- Footer Actualizado ---
 
 st.markdown(
-    """
+            """
             <hr style="margin-top:50px; margin-bottom:10px;">
 
             <div style="text-align: center; color: gray; font-size: 14px;">
@@ -270,5 +270,5 @@ st.markdown(
                 Puede contener errores.
             </div>
             """,
-    unsafe_allow_html=True,
-)
+            unsafe_allow_html=True
+        )
