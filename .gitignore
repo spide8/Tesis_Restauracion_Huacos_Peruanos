@@ -1,6 +1,6 @@
 # Archivos de Python
 __pycache__/
-*.py[cod]
+streamlit4.py
 *.pyo
 *.pyd
 *.so
@@ -35,3 +35,4 @@ Thumbs.db
 # Datos temporales
 *.tmp
 *.bak
+streamlit4.py
