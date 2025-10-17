@@ -2,6 +2,8 @@
 __pycache__/
 streamlit4.py
 Streamliy_3_.py
+streamlit5.py
+generator_checkpoint1.pth
 
 *.pyo
 *.pyd
