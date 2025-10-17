@@ -10,10 +10,10 @@ import lpips
 from pytorch_fid import fid_score
 import os
 import numpy as np
-import shutil  # Importado para limpiar archivos temporales
 
 # ==============================================================================
-# 1. DEFINICIÓN DEL MODELO GENERADOR (Sin cambios)
+# 1. DEFINICIÓN DEL MODELO GENERADOR
+# (Arquitectura final y validada)
 # ==============================================================================
 
 
@@ -78,38 +78,28 @@ class GeneratorResNet(nn.Module):
 
 
 # ==============================================================================
-# 2. FUNCIONES AUXILIARES Y CARGA DE MODELOS (MODIFICADO)
+# 2. FUNCIONES AUXILIARES
 # ==============================================================================
-
-
-# Usamos @st.cache_resource para cargar TODOS los modelos pesados una sola vez.
-# Esta función ahora devuelve ambos modelos para una carga centralizada.
 @st.cache_resource
-def load_all_models():
-    """
-    Carga el generador y el modelo LPIPS, los mantiene en caché para evitar
-    descargas y cargas repetidas en cada ejecución.
-    """
-    # Cargar el modelo generador principal
-    generator_model = GeneratorResNet()
+def load_model(checkpoint_path):
+    model = GeneratorResNet()
     checkpoint = torch.load(
-        "generator_checkpoint.pth", map_location=torch.device("cpu"), weights_only=False
+        checkpoint_path, map_location=torch.device("cpu"), weights_only=False
     )
     generator_weights = checkpoint["netG"]
     new_state_dict = OrderedDict()
     for k, v in generator_weights.items():
         name = k[7:] if k.startswith("module.") else k
         new_state_dict[name] = v
-    generator_model.load_state_dict(new_state_dict)
-    generator_model.eval()
+    model.load_state_dict(new_state_dict)
+    model.eval()
+    return model
 
-    # Cargar el modelo para la métrica LPIPS
-    # Nota: La advertencia sobre 'pretrained' que puedes ver en los logs
-    # proviene de esta librería (lpips), no de tu código. Es seguro ignorarla.
-    lpips_model = lpips.LPIPS(net="alex")
-    lpips_model.eval()
 
-    return generator_model, lpips_model
+@st.cache_resource
+def load_metric_models():
+    loss_fn_lpips = lpips.LPIPS(net="alex")
+    return loss_fn_lpips
 
 
 def preprocess_image(image: Image.Image, size=(512, 512)):
@@ -130,54 +120,21 @@ def tensor_to_pil(tensor):
 
 
 def calculate_metrics(original_img_pil, restored_img_pil, lpips_model, device):
-    """
-    Calcula las métricas FID y LPIPS.
-    Maneja la creación y eliminación de directorios temporales de forma segura.
-    """
-    temp_dir = "temp_for_metrics"
-    original_dir = os.path.join(temp_dir, "original")
-    restored_dir = os.path.join(temp_dir, "restored")
-
-    # Crear directorios temporales
-    os.makedirs(original_dir, exist_ok=True)
-    os.makedirs(restored_dir, exist_ok=True)
-
-    # Guardar imágenes
-    original_img_pil.save(os.path.join(original_dir, "img.png"))
-    restored_img_pil.save(os.path.join(restored_dir, "img.png"))
-
-    fid_value = "N/A"
-    try:
-        # La métrica FID está diseñada para comparar distribuciones de MUCHAS imágenes.
-        # Calcularla con una sola imagen por carpeta arrojará una advertencia
-        # y el resultado (infinito) no es matemáticamente significativo.
-        # Lo calculamos de todos modos, pero lo manejaremos con cuidado.
-        fid_value = fid_score.calculate_fid_given_paths(
-            [original_dir, restored_dir], batch_size=1, device=device, dims=2048
-        )
-        # Si el valor es infinito, lo mostramos como tal.
-        if np.isinf(fid_value):
-            fid_value = "∞ (No significativo)"
-        else:
-            fid_value = f"{fid_value:.2f}"
-
-    except Exception:
-        # Si hay un error, simplemente mostramos N/A
-        pass
-
-    # Calcular LPIPS
+    os.makedirs("temp/original", exist_ok=True)
+    os.makedirs("temp/restored", exist_ok=True)
+    original_img_pil.save("temp/original/img.png")
+    restored_img_pil.save("temp/restored/img.png")
+    fid_value = fid_score.calculate_fid_given_paths(
+        ["temp/original", "temp/restored"], batch_size=1, device=device, dims=2048
+    )
     original_tensor = lpips.im2tensor(np.array(original_img_pil)).to(device)
     restored_tensor = lpips.im2tensor(np.array(restored_img_pil)).to(device)
     lpips_value = lpips_model(original_tensor, restored_tensor).item()
-
-    # Limpiar archivos y directorios temporales
-    shutil.rmtree(temp_dir)
-
     return fid_value, lpips_value
 
 
 # ==============================================================================
-# 3. CONFIGURACIÓN DE LA PÁGINA E INTERFAZ (MODIFICADO)
+# 3. CONFIGURACIÓN DE LA PÁGINA E INTERFAZ
 # ==============================================================================
 st.set_page_config(
     page_title="Proyecto Huacos - Restaurador", page_icon="🏺", layout="centered"
@@ -207,16 +164,13 @@ st.markdown(
 # --- Carga de Modelos ---
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 try:
-    with st.spinner(
-        "Cargando modelos de IA, por favor espere... (Esto puede tardar en el primer inicio)"
-    ):
-        # Llamamos a nuestra función cacheada una sola vez
-        model, lpips_model = load_all_models()
+    with st.spinner("Cargando modelos de IA, por favor espere..."):
+        model = load_model("checkpoint.pth")
+        lpips_model = load_metric_models()
         model.to(device)
         lpips_model.to(device)
 except Exception as e:
-    st.error(f"Error fatal al cargar los modelos: {e}")
-    st.exception(e)  # Muestra el stack trace completo para depuración
+    st.error(f"Error al cargar los modelos: {e}")
     st.stop()
 
 # --- Carga de Archivo ---
@@ -232,8 +186,7 @@ if uploaded_file is not None:
     time.sleep(1)
     progress_bar.empty()
 
-    # CORRECCIÓN: Se reemplazó use_container_width=True por width='stretch'
-    st.image(input_image, caption="Imagen Original", width="stretch")
+    st.image(input_image, caption="Imagen Original", use_container_width=True)
 
     if st.button("✨ Restaurar Huaco", use_container_width=True):
         st.session_state.restored_image = None
@@ -254,11 +207,10 @@ if uploaded_file is not None:
         "restored_image" in st.session_state
         and st.session_state.restored_image is not None
     ):
-        # CORRECCIÓN: Se reemplazó use_container_width=True por width='stretch'
         st.image(
             st.session_state.restored_image,
             caption="Imagen Restaurada",
-            width="stretch",
+            use_container_width=True,
         )
         buf = io.BytesIO()
         st.session_state.restored_image.save(buf, format="PNG")
@@ -281,38 +233,42 @@ if uploaded_file is not None:
                     device,
                 )
             col1, col2 = st.columns(2)
-            col1.metric(label="FID (Fréchet Inception Distance)", value=fid_val)
+            col1.metric(
+                label="FID (Fréchet Inception Distance)", value=f"{fid_val:.2f}"
+            )
             col2.metric(label="LPIPS (Distancia Perceptual)", value=f"{lpips_val:.4f}")
 
-            # --- Recuadro de Métricas Actualizado con explicación sobre FID ---
+            # --- Recuadro de Métricas Actualizado ---
             with st.expander("📝 ¿Cómo interpretar estas métricas?"):
                 st.info(
                     """
-                    Estas métricas miden la **magnitud del cambio** entre la imagen original y la restaurada.
-                    
-                    **FID (Fréchet Inception Distance):**
-                    - **¿Qué es?** Mide la diferencia entre las características de dos **grupos** de imágenes. **Menor es mejor**.
-                    - **Interpretación aquí:** El cálculo de FID con una sola imagen no es matemáticamente robusto (por eso puede dar `∞`). Sin embargo, un valor numérico alto sugiere que el modelo realizó cambios significativos y distinguibles.
-                    
-                    **LPIPS (Learned Perceptual Image Patch Similarity):**
-                    - **¿Qué es?** Mide qué tan diferentes se ven dos imágenes para un humano. **Menor es mejor (más similar)**.
-                    - **Interpretación aquí:** Un LPIPS más alto (ej. > 0.4) indica que los cambios son notorios. Un valor bajo (ej. < 0.1) significa que las imágenes son casi idénticas.
-                    
-                    **En resumen:** No buscamos valores de cero. Valores más altos reflejan una transformación más profunda por parte del modelo.
-                    """
+                Estas métricas miden la **magnitud del cambio** entre la imagen original y la restaurada.
+                
+                **FID (Fréchet Inception Distance):**
+                - **¿Qué es?** Mide la diferencia entre las distribuciones de características de dos conjuntos de imágenes. **Menor es mejor (más similar)**.
+                - **Interpretación aquí:** Un FID alto (ej. > 150) sugiere que el modelo ha realizado cambios significativos. Un valor bajo (ej. < 50) podría indicar que el modelo cambió muy poco la imagen.
+                
+                **LPIPS (Learned Perceptual Image Patch Similarity):**
+                - **¿Qué es?** Mide la distancia perceptual (qué tan diferentes se ven dos imágenes para un humano). **Menor es mejor (más similar)**.
+                - **Interpretación aquí:** Un LPIPS más alto (ej. > 0.4) indica que los cambios realizados son perceptualmente notorios. Un valor muy bajo (ej. < 0.1) significa que las imágenes son casi idénticas a simple vista.
+                
+                **En resumen:** En este contexto, no buscamos valores cercanos a cero. Valores más altos en ambas métricas reflejan una transformación más profunda por parte del modelo.
+                """
                 )
         except Exception as e:
             st.warning(f"No se pudieron calcular las métricas: {e}")
 
 # --- Footer Actualizado ---
+
 st.markdown(
     """
-    <hr style="margin-top:50px; margin-bottom:10px;">
-    <div style="text-align: center; color: gray; font-size: 14px;">
-        🚧 Esta aplicación sigue en desarrollo.<br>
-        Desarrollada por un estudiante de la Universidad de Lima como parte de su trabajo final de investigación.<br>
-        Puede contener errores.
-    </div>
-    """,
+            <hr style="margin-top:50px; margin-bottom:10px;">
+
+            <div style="text-align: center; color: gray; font-size: 14px;">
+                🚧 Esta aplicación sigue en desarrollo.<br>
+                Desarrollada por un estudiante de la Universidad de Lima como parte de su trabajo final de investigación.<br>
+                Puede contener errores.
+            </div>
+            """,
     unsafe_allow_html=True,
 )
