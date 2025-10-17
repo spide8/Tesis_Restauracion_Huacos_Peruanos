@@ -7,10 +7,9 @@ import io
 from collections import OrderedDict
 import time
 import lpips
-from pytorch_fid import fid_score
-import os
 import numpy as np
-import shutil
+from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import peak_signal_noise_ratio as psnr
 
 # ==============================================================================
 # 1. DEFINICIÓN DEL MODELO GENERADOR (Sin cambios)
@@ -78,19 +77,23 @@ class GeneratorResNet(nn.Module):
 
 
 # ==============================================================================
-# 2. FUNCIONES AUXILIARES Y CARGA DE MODELOS (Sin cambios)
+# 2. FUNCIONES AUXILIARES Y CARGA DE MODELOS (Sin cambios en la carga)
 # ==============================================================================
 
 
 @st.cache_resource
 def load_all_models():
     """
-    Carga el generador y el modelo LPIPS, los mantiene en caché para evitar
-    descargas y cargas repetidas en cada ejecución.
+    Carga el generador y el modelo LPIPS, los mantiene en caché.
     """
+    # <<< NOTA PARA TI: Asegúrate de que tu lógica de descarga del modelo .pth sigue aquí >>>
+    # Si estás ejecutando en Streamlit Cloud, necesitarás el código que descarga
+    # el "generator_checkpoint.pth" desde una URL.
+    MODEL_PATH = "generator_checkpoint.pth"
+
     generator_model = GeneratorResNet()
     checkpoint = torch.load(
-        "generator_checkpoint.pth", map_location=torch.device("cpu"), weights_only=False
+        MODEL_PATH, map_location=torch.device("cpu"), weights_only=False
     )
     generator_weights = checkpoint["netG"]
     new_state_dict = OrderedDict()
@@ -123,44 +126,8 @@ def tensor_to_pil(tensor):
     return transforms.ToPILImage()(tensor)
 
 
-def calculate_metrics(original_img_pil, restored_img_pil, lpips_model, device):
-    """
-    Calcula las métricas FID y LPIPS.
-    Maneja la creación y eliminación de directorios temporales de forma segura.
-    """
-    temp_dir = "temp_for_metrics"
-    original_dir = os.path.join(temp_dir, "original")
-    restored_dir = os.path.join(temp_dir, "restored")
-
-    os.makedirs(original_dir, exist_ok=True)
-    os.makedirs(restored_dir, exist_ok=True)
-
-    original_img_pil.save(os.path.join(original_dir, "img.png"))
-    restored_img_pil.save(os.path.join(restored_dir, "img.png"))
-
-    fid_value = "N/A"
-    try:
-        fid_value = fid_score.calculate_fid_given_paths(
-            [original_dir, restored_dir], batch_size=1, device=device, dims=2048
-        )
-        if np.isinf(fid_value):
-            fid_value = "∞ (No significativo)"
-        else:
-            fid_value = f"{fid_value:.2f}"
-    except Exception:
-        pass
-
-    original_tensor = lpips.im2tensor(np.array(original_img_pil)).to(device)
-    restored_tensor = lpips.im2tensor(np.array(restored_img_pil)).to(device)
-    lpips_value = lpips_model(original_tensor, restored_tensor).item()
-
-    shutil.rmtree(temp_dir)
-
-    return fid_value, lpips_value
-
-
 # ==============================================================================
-# 3. CONFIGURACIÓN DE LA PÁGINA E INTERFAZ (CORREGIDO)
+# 3. CONFIGURACIÓN DE LA PÁGINA E INTERFAZ (MODIFICADO)
 # ==============================================================================
 st.set_page_config(
     page_title="Proyecto Huacos - Restaurador", page_icon="🏺", layout="centered"
@@ -211,7 +178,6 @@ if uploaded_file is not None:
     time.sleep(1)
     progress_bar.empty()
 
-    # <<< CORRECCIÓN AQUÍ: Se reemplazó width="stretch" por use_container_width=True
     st.image(input_image, caption="Imagen Original", use_container_width=True)
 
     if st.button("✨ Restaurar Huaco", use_container_width=True):
@@ -233,7 +199,6 @@ if uploaded_file is not None:
         "restored_image" in st.session_state
         and st.session_state.restored_image is not None
     ):
-        # <<< CORRECCIÓN AQUÍ: Se reemplazó width="stretch" por use_container_width=True
         st.image(
             st.session_state.restored_image,
             caption="Imagen Restaurada",
@@ -248,46 +213,71 @@ if uploaded_file is not None:
             mime="image/png",
             use_container_width=True,
         )
+
+        # <<< SECCIÓN DE MÉTRICAS COMPLETAMENTE REHECHA >>>
         st.markdown("---")
-        st.subheader("📊 Evaluación Cuantitativa del Cambio")
+        st.subheader("📊 Análisis Cuantitativo de la Transformación")
 
-        try:
-            with st.spinner("Calculando métricas de evaluación..."):
-                fid_val, lpips_val = calculate_metrics(
-                    input_image.resize((512, 512)),
-                    st.session_state.restored_image,
-                    lpips_model,
-                    device,
-                )
-            col1, col2 = st.columns(2)
-            col1.metric(label="FID (Fréchet Inception Distance)", value=fid_val)
-            col2.metric(label="LPIPS (Distancia Perceptual)", value=f"{lpips_val:.4f}")
+        if st.checkbox(
+            "Calcular análisis de la imagen (SSIM, PSNR, LPIPS)", value=False
+        ):
+            try:
+                with st.spinner("Analizando la magnitud del cambio..."):
+                    # Preparar imágenes para el cálculo de métricas
+                    original_resized = input_image.resize((512, 512))
+                    original_array = np.array(original_resized)
+                    restored_array = np.array(st.session_state.restored_image)
 
-            with st.expander("📝 ¿Cómo interpretar estas métricas?"):
-                st.info(
-                    """
-                    Estas métricas miden la **magnitud del cambio** entre la imagen original y la restaurada.
-                    
-                    **FID (Fréchet Inception Distance):**
-                    - **¿Qué es?** Mide la diferencia entre las características de dos **grupos** de imágenes. **Menor es mejor**.
-                    - **Interpretación aquí:** El cálculo de FID con una sola imagen no es matemáticamente robusto (por eso puede dar `∞`). Sin embargo, un valor numérico alto sugiere que el modelo realizó cambios significativos y distinguibles.
-                    
-                    **LPIPS (Learned Perceptual Image Patch Similarity):**
-                    - **¿Qué es?** Mide qué tan diferentes se ven dos imágenes para un humano. **Menor es mejor (más similar)**.
-                    - **Interpretación aquí:** Un LPIPS más alto (ej. > 0.4) indica que los cambios son notorios. Un valor bajo (ej. < 0.1) significa que las imágenes son casi idénticas.
-                    
-                    **En resumen:** No buscamos valores de cero. Valores más altos reflejan una transformación más profunda por parte del modelo.
-                    """
-                )
-        except Exception as e:
-            st.warning(f"No se pudieron calcular las métricas: {e}")
+                    # 1. Calcular SSIM y PSNR (ligeros)
+                    ssim_val = ssim(
+                        original_array, restored_array, data_range=255, channel_axis=2
+                    )
+                    psnr_val = psnr(original_array, restored_array, data_range=255)
+
+                    # 2. Calcular LPIPS (más pesado)
+                    original_tensor = lpips.im2tensor(original_array).to(device)
+                    restored_tensor = lpips.im2tensor(restored_array).to(device)
+                    lpips_val = lpips_model(original_tensor, restored_tensor).item()
+
+                st.success("Análisis completado.")
+
+                col1, col2, col3 = st.columns(3)
+                col1.metric(label="SSIM", value=f"{ssim_val:.4f}")
+                col2.metric(label="PSNR", value=f"{psnr_val:.2f} dB")
+                col3.metric(label="LPIPS", value=f"{lpips_val:.4f}")
+
+                with st.expander("📝 ¿Cómo interpretar este análisis?"):
+                    st.info(
+                        """
+                        Estas métricas **no miden la calidad** de la restauración, sino la **magnitud de la transformación** aplicada por el modelo. Un cambio más grande (valores más bajos de SSIM/PSNR y más altos de LPIPS) indica una intervención más profunda del modelo.
+                        """
+                    )
+                    st.markdown(
+                        """
+                        #### **SSIM (Índice de Similitud Estructural)**
+                        - **Qué mide:** Compara la estructura, el contraste y la luminancia entre las imágenes. Su rango es de -1 a 1.
+                        - **Interpretación aquí:** Un valor de **1** significa que las imágenes son idénticas. Un valor **más bajo** indica que el modelo alteró significativamente la textura y apariencia general para aplicar el nuevo estilo restaurado.
+
+                        ---
+                        #### **PSNR (Relación Señal-Ruido Pico)**
+                        - **Qué mide:** La diferencia a nivel de píxeles entre las imágenes. Se mide en decibelios (dB).
+                        - **Interpretación aquí:** Un valor **más bajo** sugiere cambios más profundos en los colores y detalles. Un valor muy alto (ej. > 40 dB) indicaría que la imagen cambió muy poco, reflejando una transformación mínima.
+                        
+                        ---
+                        #### **LPIPS (Distancia Perceptual)**
+                        - **Qué mide:** Utiliza una red neuronal para imitar qué tan diferentes percibe un humano dos imágenes.
+                        - **Interpretación aquí:** Un valor **más alto** (ej. > 0.4) indica que los cambios son notorios y fácilmente perceptibles, reflejando una transformación visual significativa. Un valor cercano a **0** significaría que son casi idénticas a la vista.
+                        """
+                    )
+            except Exception as e:
+                st.error(f"No se pudo completar el análisis cuantitativo: {e}")
 
 st.markdown(
     """
     <hr style="margin-top:50px; margin-bottom:10px;">
     <div style="text-align: center; color: gray; font-size: 14px;">
         🚧 Esta aplicación sigue en desarrollo.<br>
-        Desarrollada por un estudiante de la Universidad de Lima como parte de su trabajo final de investigación.<br>
+        Desarrollada como parte de un trabajo final de investigación.<br>
         Puede contener errores.
     </div>
     """,

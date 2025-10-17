@@ -6,4 +6,4 @@ Pillow
 numpy
 scikit-image
 lpips
-pytorch-fid
+
