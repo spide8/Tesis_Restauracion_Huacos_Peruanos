@@ -86,9 +86,8 @@ def load_all_models():
     """
     Carga el generador y el modelo LPIPS, los mantiene en caché.
     """
-    # <<< NOTA PARA TI: Asegúrate de que tu lógica de descarga del modelo .pth sigue aquí >>>
-    # Si estás ejecutando en Streamlit Cloud, necesitarás el código que descarga
-    # el "generator_checkpoint.pth" desde una URL.
+    # NOTA: Asegúrate de que tu lógica de descarga del modelo .pth sigue aquí
+    # para que funcione en Streamlit Cloud.
     MODEL_PATH = "generator_checkpoint.pth"
 
     generator_model = GeneratorResNet()
@@ -127,7 +126,7 @@ def tensor_to_pil(tensor):
 
 
 # ==============================================================================
-# 3. CONFIGURACIÓN DE LA PÁGINA E INTERFAZ (MODIFICADO)
+# 3. CONFIGURACIÓN DE LA PÁGINA E INTERFAZ (FINAL)
 # ==============================================================================
 st.set_page_config(
     page_title="Proyecto Huacos - Restaurador", page_icon="🏺", layout="centered"
@@ -214,27 +213,26 @@ if uploaded_file is not None:
             use_container_width=True,
         )
 
-        # <<< SECCIÓN DE MÉTRICAS COMPLETAMENTE REHECHA >>>
         st.markdown("---")
         st.subheader("📊 Análisis Cuantitativo de la Transformación")
 
-        if st.checkbox(
-            "Calcular análisis de la imagen (SSIM, PSNR, LPIPS)", value=False
+        # <<< CAMBIO FINAL: Se reemplazó st.checkbox por st.button >>>
+        if st.button(
+            "Calcular Análisis de la Transformación", use_container_width=True
         ):
             try:
-                with st.spinner("Analizando la magnitud del cambio..."):
-                    # Preparar imágenes para el cálculo de métricas
+                with st.spinner(
+                    "Analizando... Este proceso puede tardar unos segundos."
+                ):
                     original_resized = input_image.resize((512, 512))
                     original_array = np.array(original_resized)
                     restored_array = np.array(st.session_state.restored_image)
 
-                    # 1. Calcular SSIM y PSNR (ligeros)
                     ssim_val = ssim(
                         original_array, restored_array, data_range=255, channel_axis=2
                     )
                     psnr_val = psnr(original_array, restored_array, data_range=255)
 
-                    # 2. Calcular LPIPS (más pesado)
                     original_tensor = lpips.im2tensor(original_array).to(device)
                     restored_tensor = lpips.im2tensor(restored_array).to(device)
                     lpips_val = lpips_model(original_tensor, restored_tensor).item()
@@ -255,18 +253,18 @@ if uploaded_file is not None:
                     st.markdown(
                         """
                         #### **SSIM (Índice de Similitud Estructural)**
-                        - **Qué mide:** Compara la estructura, el contraste y la luminancia entre las imágenes. Su rango es de -1 a 1.
-                        - **Interpretación aquí:** Un valor de **1** significa que las imágenes son idénticas. Un valor **más bajo** indica que el modelo alteró significativamente la textura y apariencia general para aplicar el nuevo estilo restaurado.
+                        - **Qué mide:** Compara la estructura, el contraste y la luminancia. Su rango es de -1 a 1.
+                        - **Interpretación aquí:** Un valor de **1** significa que las imágenes son idénticas. Un valor **más bajo** indica una alteración significativa de la textura y apariencia.
 
                         ---
                         #### **PSNR (Relación Señal-Ruido Pico)**
-                        - **Qué mide:** La diferencia a nivel de píxeles entre las imágenes. Se mide en decibelios (dB).
-                        - **Interpretación aquí:** Un valor **más bajo** sugiere cambios más profundos en los colores y detalles. Un valor muy alto (ej. > 40 dB) indicaría que la imagen cambió muy poco, reflejando una transformación mínima.
+                        - **Qué mide:** La diferencia a nivel de píxeles. Se mide en decibelios (dB).
+                        - **Interpretación aquí:** Un valor **más bajo** sugiere cambios más profundos en los colores y detalles. Un valor muy alto (ej. > 40 dB) indicaría una transformación mínima.
                         
                         ---
                         #### **LPIPS (Distancia Perceptual)**
-                        - **Qué mide:** Utiliza una red neuronal para imitar qué tan diferentes percibe un humano dos imágenes.
-                        - **Interpretación aquí:** Un valor **más alto** (ej. > 0.4) indica que los cambios son notorios y fácilmente perceptibles, reflejando una transformación visual significativa. Un valor cercano a **0** significaría que son casi idénticas a la vista.
+                        - **Qué mide:** Usa una red neuronal para imitar qué tan diferentes percibe un humano dos imágenes.
+                        - **Interpretación aquí:** Un valor **más alto** (ej. > 0.4) indica cambios notorios y perceptibles. Un valor cercano a **0** significaría que son casi idénticas a la vista.
                         """
                     )
             except Exception as e:
