@@ -1,6 +1,8 @@
 # Archivos de Python
 __pycache__/
 streamlit4.py
+Streamliy_3_.py
+
 *.pyo
 *.pyd
 *.so
@@ -19,7 +21,7 @@ env/
 Thumbs.db
 
 # Modelos pesados
-
+swinir_model.pth
 *.pt
 
 # Archivos de logs
