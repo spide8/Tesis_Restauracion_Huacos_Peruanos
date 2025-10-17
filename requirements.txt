@@ -5,5 +5,4 @@ torchaudio==2.8.0
 Pillow
 numpy
 scikit-image
-lpips
-pytorch_fid
+
