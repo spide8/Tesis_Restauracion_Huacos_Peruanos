@@ -247,22 +247,22 @@ if uploaded_file is not None:
                 with st.expander("📝 ¿Cómo interpretar este análisis?"):
                     st.info(
                         """
-                        Estas métricas **no miden la calidad** de la restauración, sino la **magnitud de la transformación** aplicada por el modelo. Un cambio más grande (valores más bajos de SSIM/PSNR y más altos de LPIPS) indica una intervención más profunda del modelo.
+                        Estas métricas miden la calidad de la restauración y la magnitud de la transformación aplicada por el modelo de manera cuantitativa.
                         """
                     )
                     st.markdown(
                         """
-                        #### **SSIM (Índice de Similitud Estructural)**
-                        - **Qué mide:** Compara la estructura, el contraste y la luminancia. Su rango es de -1 a 1.
-                        - **Interpretación aquí:** Un valor de **1** significa que las imágenes son idénticas. Un valor **más bajo** indica una alteración significativa de la textura y apariencia.
+                        #### **Structural Similarity Index Measure (SSIM)**
+                        - **Qué mide:** Compara la estructura, el contraste y la luminancia. Su rango es de 0 a 1.
+                        - **Interpretación:** Un valor igual o cercano a  **1** significa que las imágenes son idénticas. Un valor **más bajo** indica una alteración significativa de la textura y apariencia.
 
                         ---
-                        #### **PSNR (Relación Señal-Ruido Pico)**
+                        #### **Peak Signal-to-Noise Ratio (PSNR)**
                         - **Qué mide:** La diferencia a nivel de píxeles. Se mide en decibelios (dB).
                         - **Interpretación aquí:** Un valor **más bajo** sugiere cambios más profundos en los colores y detalles. Un valor muy alto (ej. > 40 dB) indicaría una transformación mínima.
                         
                         ---
-                        #### **LPIPS (Distancia Perceptual)**
+                        #### **Learned Perceptual Image Patch Similarity (LPIPS)**
                         - **Qué mide:** Usa una red neuronal para imitar qué tan diferentes percibe un humano dos imágenes.
                         - **Interpretación aquí:** Un valor **más alto** (ej. > 0.4) indica cambios notorios y perceptibles. Un valor cercano a **0** significaría que son casi idénticas a la vista.
                         """
