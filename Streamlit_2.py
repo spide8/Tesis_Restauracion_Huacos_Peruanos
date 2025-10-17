@@ -86,8 +86,6 @@ def load_all_models():
     """
     Carga el generador y el modelo LPIPS, los mantiene en caché.
     """
-    # NOTA: Asegúrate de que tu lógica de descarga del modelo .pth sigue aquí
-    # para que funcione en Streamlit Cloud.
     MODEL_PATH = "generator_checkpoint.pth"
 
     generator_model = GeneratorResNet()
@@ -126,7 +124,7 @@ def tensor_to_pil(tensor):
 
 
 # ==============================================================================
-# 3. CONFIGURACIÓN DE LA PÁGINA E INTERFAZ (FINAL)
+# 3. CONFIGURACIÓN DE LA PÁGINA E INTERFAZ (ACTUALIZADO)
 # ==============================================================================
 st.set_page_config(
     page_title="Proyecto Huacos - Restaurador", page_icon="🏺", layout="centered"
@@ -177,9 +175,11 @@ if uploaded_file is not None:
     time.sleep(1)
     progress_bar.empty()
 
-    st.image(input_image, caption="Imagen Original", use_container_width=True)
+    # <<< CORRECCIÓN DE SINTAXIS >>>
+    st.image(input_image, caption="Imagen Original", width="stretch")
 
-    if st.button("✨ Restaurar Huaco", use_container_width=True):
+    # <<< CORRECCIÓN DE SINTAXIS >>>
+    if st.button("✨ Restaurar Huaco", width="stretch"):
         st.session_state.restored_image = None
         restore_progress = st.progress(0, text="Iniciando restauración...")
         with torch.no_grad():
@@ -198,28 +198,28 @@ if uploaded_file is not None:
         "restored_image" in st.session_state
         and st.session_state.restored_image is not None
     ):
+        # <<< CORRECCIÓN DE SINTAXIS >>>
         st.image(
             st.session_state.restored_image,
             caption="Imagen Restaurada",
-            use_container_width=True,
+            width="stretch",
         )
         buf = io.BytesIO()
         st.session_state.restored_image.save(buf, format="PNG")
+        # <<< CORRECCIÓN DE SINTAXIS >>>
         st.download_button(
             label="📥 Descargar Imagen Restaurada",
             data=buf.getvalue(),
             file_name="huaco_restaurado.png",
             mime="image/png",
-            use_container_width=True,
+            width="stretch",
         )
 
         st.markdown("---")
         st.subheader("📊 Análisis Cuantitativo de la Transformación")
 
-        # <<< CAMBIO FINAL: Se reemplazó st.checkbox por st.button >>>
-        if st.button(
-            "Calcular Análisis de la Transformación", use_container_width=True
-        ):
+        # <<< CORRECCIÓN DE SINTAXIS >>>
+        if st.button("Calcular Análisis de la Transformación", width="stretch"):
             try:
                 with st.spinner(
                     "Analizando... Este proceso puede tardar unos segundos."
