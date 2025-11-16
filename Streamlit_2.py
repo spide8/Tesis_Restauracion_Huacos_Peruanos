@@ -143,8 +143,8 @@ st.markdown(
 }
 </style>
 <div class="title-box">
-    <h1 style="color: #333333; margin-bottom: 10px;">🏺 Simulador de restauración digital de huacos peruanos </h1>
-    <p style="color: #555555; font-size: 18px; margin: 0;">Sube una imagen de un huaco deteriorado o desgastado para restaurarlo.</p>
+    <h1 style="color: #333333; margin-bottom: 10px;">🏺 Simulador de resconstrucción digital de cerámicas peruanas </h1>
+    <p style="color: #555555; font-size: 18px; margin: 0;">Sube una imagen de una cerámica deteriorada o desgastada para restaurarla.</p>
 </div>
 """,
     unsafe_allow_html=True,
@@ -164,7 +164,7 @@ except Exception as e:
     st.stop()
 
 uploaded_file = st.file_uploader(
-    "Cargue la imagen de un huaco para su restauración:",
+    "Cargue la imagen de una cerámica para su reconstrucción:",
     type=["jpg", "jpeg", "png", "webp"],
 )
 
@@ -275,7 +275,7 @@ st.markdown(
     <hr style="margin-top:50px; margin-bottom:10px;">
     <div style="text-align: center; color: gray; font-size: 14px;">
         🚧 Esta aplicación sigue en desarrollo.<br>
-        Desarrollada como parte de un trabajo final de investigación.<br>
+        Desarrollada como herramienta de mi trabajo final de investigación.<br>
         Puede contener errores.
     </div>
     """,
