@@ -143,7 +143,7 @@ st.markdown(
 }
 </style>
 <div class="title-box">
-    <h1 style="color: #333333; margin-bottom: 10px;">🏺 Simulador de resconstrucción digital de cerámicas peruanas </h1>
+    <h1 style="color: #333333; margin-bottom: 10px;">🏺 Simulador de reconstrucción digital de cerámicas peruanas </h1>
     <p style="color: #555555; font-size: 18px; margin: 0;">Sube una imagen de una cerámica deteriorada o desgastada para restaurarla.</p>
 </div>
 """,
