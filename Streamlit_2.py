@@ -179,7 +179,7 @@ if uploaded_file is not None:
     st.image(input_image, caption="Imagen Original", width="stretch")
 
     # <<< CORRECCIÓN DE SINTAXIS >>>
-    if st.button("✨ Restaurar Huaco", width="stretch"):
+    if st.button("✨ Restaurar Cerámica", width="stretch"):
         st.session_state.restored_image = None
         restore_progress = st.progress(0, text="Iniciando restauración...")
         with torch.no_grad():
